@@ -3,6 +3,7 @@ import random
 import Tests
 from rich.console import Console
 import argparse
+from pathlib import Path
 
 console = Console()
 
@@ -44,6 +45,8 @@ if __name__ == "__main__":
 
     parser.add_argument("-f", type=str, dest="input", help="path to input file")
 
+    parser.add_argument("-o", type=str, dest="output", help="path to output file")
+
     parser.add_argument(
         "-l", default=DEFAULT_N, type=int, dest="length", help="length of the output"
     )
@@ -52,6 +55,7 @@ if __name__ == "__main__":
 
     debug = args.debug
     inputFile = args.input
+    outputFile = args.output
     outputLength = args.length
 
     x = 3 * 10 ** 10
@@ -71,6 +75,11 @@ if __name__ == "__main__":
         x = x * x % M
         b = x % 2
         bits += str(b)
+
+    if outputFile:
+        Path("output/").mkdir(parents=True, exist_ok=True)
+        with open("output/" + outputFile, "w") as text_file:
+            text_file.write(bits)
 
     if debug:
         print(bits)

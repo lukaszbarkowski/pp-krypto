@@ -10,5 +10,6 @@ Run script:
 Available flags:  
 `-d` - debug, print result  
 `-f <filename>` - process input instead of generating new one  
+`-o <filename>` - save output bits to file  
 `-l <number>` - generate a string of set length
 
