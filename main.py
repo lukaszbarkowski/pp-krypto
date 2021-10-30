@@ -1,20 +1,15 @@
-import sympy
-import random
+from os import error
 import Tests
+from bbs import bbs
 from rich.console import Console
+from rich.style import Style
 import argparse
 from pathlib import Path
+import encryptor
 
 console = Console()
 
 DEFAULT_N = 20000
-
-
-def next_usable_prime(x):
-    p = sympy.nextprime(x)
-    while p % 4 != 3:
-        p = sympy.nextprime(p)
-    return p
 
 
 def runTests(bits, debug):
@@ -31,11 +26,11 @@ def runTests(bits, debug):
     Tests.pokerTest(bits, debug)
 
 
-if __name__ == "__main__":
+def getArgs():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "-d",
+        "-debug",
         default=False,
         dest="debug",
         action="store_const",
@@ -51,38 +46,88 @@ if __name__ == "__main__":
         "-l", default=DEFAULT_N, type=int, dest="length", help="length of the output"
     )
 
+    parser.add_argument("-m", type=str, dest="message", help="message to encrypt")
+
+    parser.add_argument(
+        "-d",
+        default=False,
+        dest="decrypt",
+        action="store_const",
+        const=True,
+        help="decrypt input message",
+    )
+
+    parser.add_argument("-s", type=int, dest="seed", help="seed to input")
+
     args = parser.parse_args()
 
     debug = args.debug
     inputFile = args.input
     outputFile = args.output
     outputLength = args.length
+    decrypt = args.decrypt
+    userSeed = args.seed
+    message = args.message
 
-    x = 3 * 10 ** 10
-    y = 4 * 10 ** 10
+    return (
+        debug,
+        inputFile,
+        outputFile,
+        outputLength,
+        decrypt,
+        userSeed,
+        message,
+    )
 
-    seed = random.randint(1, 1e10)
 
-    bits = ""
+if __name__ == "__main__":
+    debug, inputFile, outputFile, outputLength, decrypt, userSeed, message = getArgs()
 
-    p = next_usable_prime(x)
-    q = next_usable_prime(y)
-    M = p * q
+    if decrypt:
+        if inputFile and userSeed:
+            data = ""
+            with open(inputFile, "r") as file:
+                data = file.read()
 
-    x = seed
+            seed, bits = bbs(len(data) * 7, userSeed)
 
-    for _ in range(outputLength):
-        x = x * x % M
-        b = x % 2
-        bits += str(b)
+            message = encryptor.decrypt(data, bits)
 
-    if outputFile:
-        Path("output/").mkdir(parents=True, exist_ok=True)
-        with open("output/" + outputFile, "w") as text_file:
-            text_file.write(bits)
+            print(message)
+        else:
+            raise Exception(
+                "Input file(-f) and seed (-s) are required while using decryption"
+            )
+    else:
+        if message is not None:
+            outputLength = len(message) * 7
 
-    if debug:
-        print(bits)
+        seed, bits = bbs(outputLength, userSeed)
 
-    if outputLength == DEFAULT_N:
-        runTests(bits, debug)
+        if outputFile:
+            Path("output/bbs/").mkdir(parents=True, exist_ok=True)
+            with open("output/bbs/" + outputFile, "w") as text_file:
+                text_file.write(bits)
+
+        if message:
+            encryptedMessage = encryptor.encrypt(message, bits)
+
+            console.print("Seed: " + str(seed), style=Style(color="red", bold=True))
+
+            if outputFile:
+                Path("output/encryption/").mkdir(parents=True, exist_ok=True)
+                with open("output/encryption/" + outputFile, "w") as text_file:
+                    text_file.write(encryptedMessage)
+                console.print(
+                    "Encrypted message save to file.",
+                    style=Style(color="green", bold=True),
+                )
+            else:
+                print("Encrypted message:")
+                print(encryptedMessage)
+
+        if debug:
+            print("Bits:", bits)
+
+        if outputLength == DEFAULT_N:
+            runTests(bits, debug)
